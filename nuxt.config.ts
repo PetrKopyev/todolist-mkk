@@ -15,5 +15,8 @@ export default defineNuxtConfig({
   },
   typescript: {
     strict: true,
+    tsConfig: {
+      include: ["../tests/**/*"],
+    },
   },
 });

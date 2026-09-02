@@ -84,14 +84,11 @@ a {
   color: var(--color-brand-dark);
 }
 
-// Кольцо фокуса рисуем сами и только для клавиатуры — по умолчанию
-// браузерный outline съезжает на скруглённых элементах.
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
-// Пока открыта модалка, страница под ней не должна скроллиться.
 body.is-modal-open {
   overflow: hidden;
 }

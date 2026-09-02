@@ -13,8 +13,6 @@ $breakpoint-tablet: 900px;
   }
 }
 
-// Скрыть визуально, оставив доступным скринридеру: нужно для подписей
-// у чекбоксов и для заголовков модальных окон.
 @mixin visually-hidden {
   position: absolute;
   width: 1px;
