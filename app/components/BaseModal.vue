@@ -32,16 +32,6 @@ const trapTab = (event: KeyboardEvent) => {
   }
 };
 
-const onKeydown = (event: KeyboardEvent) => {
-  if (event.key === "Escape") {
-    emit("close");
-  }
-
-  if (event.key === "Tab") {
-    trapTab(event);
-  }
-};
-
 onMounted(async () => {
   restoreFocusTo =
     document.activeElement instanceof HTMLElement
@@ -61,7 +51,12 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div class="modal" @keydown="onKeydown" @mousedown.self="emit('close')">
+    <div
+      class="modal"
+      @keydown.escape="emit('close')"
+      @keydown.tab="trapTab"
+      @mousedown.self="emit('close')"
+    >
       <div
         ref="dialog"
         class="modal__window"
