@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { TodoItem } from "~/types/note";
+import { createHistory, record, redo, reset, undo } from "~/utils/history";
+
 const store = useNotesStore();
 const route = useRoute();
 const router = useRouter();
@@ -12,17 +15,77 @@ const draft = ref(
     : null,
 );
 
+const history = reactive(createHistory());
 const isCancelling = ref(false);
 const isRemoving = ref(false);
 
+let textBeforeEdit = "";
+
 const canSave = computed(() => Boolean(draft.value?.title.trim()));
+const canUndo = computed(() => history.undoStack.length > 0);
+const canRedo = computed(() => history.redoStack.length > 0);
+
+const startTextEdit = (value: string) => {
+  textBeforeEdit = value;
+};
+
+const finishTitleEdit = () => {
+  const after = draft.value?.title ?? "";
+
+  if (after !== textBeforeEdit) {
+    record(history, { type: "title", before: textBeforeEdit, after });
+  }
+};
+
+const finishTodoEdit = (todo: TodoItem) => {
+  if (todo.text !== textBeforeEdit) {
+    record(history, {
+      type: "todo-text",
+      id: todo.id,
+      before: textBeforeEdit,
+      after: todo.text,
+    });
+  }
+};
+
+const toggleTodo = (todo: TodoItem) => {
+  todo.done = !todo.done;
+  record(history, { type: "todo-done", id: todo.id });
+};
 
 const addTodo = () => {
-  draft.value?.todos.push({ id: crypto.randomUUID(), text: "", done: false });
+  if (!draft.value) {
+    return;
+  }
+
+  const item: TodoItem = { id: crypto.randomUUID(), text: "", done: false };
+  const index = draft.value.todos.length;
+
+  draft.value.todos.push(item);
+  record(history, { type: "todo-add", index, item: { ...item } });
 };
 
 const removeTodo = (index: number) => {
-  draft.value?.todos.splice(index, 1);
+  const item = draft.value?.todos[index];
+
+  if (!draft.value || !item) {
+    return;
+  }
+
+  draft.value.todos.splice(index, 1);
+  record(history, { type: "todo-remove", index, item });
+};
+
+const undoChange = () => {
+  if (draft.value) {
+    undo(history, draft.value);
+  }
+};
+
+const redoChange = () => {
+  if (draft.value) {
+    redo(history, draft.value);
+  }
 };
 
 const save = () => {
@@ -38,6 +101,12 @@ const save = () => {
       .filter((todo) => todo.text),
   });
 
+  reset(history);
+  router.push("/");
+};
+
+const cancel = () => {
+  reset(history);
   router.push("/");
 };
 
@@ -55,7 +124,7 @@ const remove = () => {
 
         <div class="page__actions">
           <BaseButton type="secondary" @click="isCancelling = true">
-            Отменить
+            Отменить редактирование
           </BaseButton>
           <BaseButton type="danger" @click="isRemoving = true">
             Удалить
@@ -64,13 +133,30 @@ const remove = () => {
         </div>
       </header>
 
-      <BaseInput v-model="draft.title" placeholder="Название заметки" />
+      <div class="page__toolbar">
+        <BaseButton type="secondary" :disabled="!canUndo" @click="undoChange">
+          Отменить действие
+        </BaseButton>
+        <BaseButton type="secondary" :disabled="!canRedo" @click="redoChange">
+          Повторить действие
+        </BaseButton>
+      </div>
+
+      <BaseInput
+        v-model="draft.title"
+        placeholder="Название заметки"
+        @focus="startTextEdit(draft.title)"
+        @blur="finishTitleEdit"
+      />
 
       <ul class="page__todos">
         <li v-for="(todo, index) in draft.todos" :key="todo.id">
           <TodoRow
-            v-model:done="todo.done"
-            v-model:text="todo.text"
+            :todo
+            @toggle="toggleTodo(todo)"
+            @input="todo.text = $event"
+            @focus="startTextEdit(todo.text)"
+            @blur="finishTodoEdit(todo)"
             @remove="removeTodo(index)"
           />
         </li>
@@ -83,7 +169,7 @@ const remove = () => {
         title="Отменить редактирование?"
         confirm-label="Отменить правки"
         @cancel="isCancelling = false"
-        @confirm="router.push('/')"
+        @confirm="cancel"
       >
         Внесённые изменения не сохранятся.
       </ConfirmDialog>
@@ -127,9 +213,15 @@ const remove = () => {
     }
   }
 
-  &__actions {
+  &__actions,
+  &__toolbar {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-sm);
+  }
+
+  &__toolbar {
+    margin-bottom: var(--space-md);
   }
 
   &__todos {

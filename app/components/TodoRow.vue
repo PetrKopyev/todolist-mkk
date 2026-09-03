@@ -1,15 +1,36 @@
 <script setup lang="ts">
-const done = defineModel<boolean>("done", { required: true });
-const text = defineModel<string>("text", { required: true });
+import type { TodoItem } from "~/types/note";
 
-defineEmits<{ remove: [] }>();
+defineProps<{ todo: TodoItem }>();
+
+const emit = defineEmits<{
+  toggle: [];
+  input: [value: string];
+  focus: [];
+  blur: [];
+  remove: [];
+}>();
 </script>
 
 <template>
   <div class="todo">
-    <BaseCheckbox v-model="done" aria-label="Выполнено" />
-    <BaseInput v-model="text" placeholder="Что нужно сделать" />
-    <BaseButton type="danger" aria-label="Удалить пункт" @click="$emit('remove')">
+    <BaseCheckbox
+      :model-value="todo.done"
+      aria-label="Выполнено"
+      @update:model-value="emit('toggle')"
+    />
+    <BaseInput
+      :model-value="todo.text"
+      placeholder="Что нужно сделать"
+      @update:model-value="emit('input', $event)"
+      @focus="emit('focus')"
+      @blur="emit('blur')"
+    />
+    <BaseButton
+      type="danger"
+      aria-label="Удалить пункт"
+      @click="emit('remove')"
+    >
       ×
     </BaseButton>
   </div>
