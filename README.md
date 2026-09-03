@@ -1,5 +1,7 @@
 # Заметки
 
+[![pipeline](https://gitlab.com/petrkopev/todolist-mkk/badges/main/pipeline.svg)](https://gitlab.com/petrkopev/todolist-mkk/-/pipelines)
+
 SPA для заметок со списками задач. Nuxt 4, TypeScript в strict-режиме, Pinia, SCSS.
 
 Две страницы: список всех заметок и редактирование одной. Данные лежат в localStorage.
@@ -29,6 +31,7 @@ npm run dev
 | `npm run build` | продакшен-сборка в `.output` |
 | `npm run preview` | запуск собранного приложения |
 | `npm test` | юнит-тесты |
+| `npm run lint` | проверка линтером |
 | `npm run typecheck` | проверка типов |
 
 ## Структура

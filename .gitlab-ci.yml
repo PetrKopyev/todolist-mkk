@@ -1,0 +1,35 @@
+image: node:22-alpine
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - node_modules/
+
+before_script:
+  - npm ci
+
+stages:
+  - check
+  - build
+
+lint:
+  stage: check
+  script:
+    - npm run lint
+
+typecheck:
+  stage: check
+  script:
+    - npm run typecheck
+
+test:
+  stage: check
+  script:
+    - npm test
+
+build:
+  stage: build
+  script:
+    - npm run build
