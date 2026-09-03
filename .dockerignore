@@ -1,9 +1,5 @@
 node_modules
 .output
 .nuxt
-.data
 .git
-.idea
-.vscode
 tests
-*.log

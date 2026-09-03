@@ -113,6 +113,8 @@ useUndoRedoShortcuts(undoChange, redoChange);
 
 const leave = () => {
   isLeaving = true;
+  reset(history);
+  clearDraft();
   router.push("/");
 };
 
@@ -129,25 +131,11 @@ const save = () => {
       .filter((todo) => todo.text),
   });
 
-  reset(history);
-  clearDraft();
-  leave();
-};
-
-const cancel = () => {
-  reset(history);
-  clearDraft();
   leave();
 };
 
 const remove = () => {
   store.remove(noteId);
-  clearDraft();
-  leave();
-};
-
-const leaveDeleted = () => {
-  clearDraft();
   leave();
 };
 
@@ -172,146 +160,115 @@ watch(
 </script>
 
 <template>
-  <main class="page">
-    <template v-if="draft">
-      <header class="page__header">
-        <h1>Заметка</h1>
+  <div v-if="draft">
+    <PageHeader title="Заметка">
+      <BaseButton type="secondary" @click="dialog = 'cancel'">
+        Отменить редактирование
+      </BaseButton>
+      <BaseButton type="danger" @click="dialog = 'remove'">Удалить</BaseButton>
+      <BaseButton :disabled="!canSave" @click="save">Сохранить</BaseButton>
+    </PageHeader>
 
-        <div class="page__actions">
-          <BaseButton type="secondary" @click="dialog = 'cancel'">
-            Отменить редактирование
-          </BaseButton>
-          <BaseButton type="danger" @click="dialog = 'remove'">
-            Удалить
-          </BaseButton>
-          <BaseButton :disabled="!canSave" @click="save">Сохранить</BaseButton>
-        </div>
-      </header>
-
-      <div class="page__toolbar">
-        <BaseButton type="secondary" :disabled="!canUndo" @click="undoChange">
-          Отменить действие
-        </BaseButton>
-        <BaseButton type="secondary" :disabled="!canRedo" @click="redoChange">
-          Повторить действие
-        </BaseButton>
-      </div>
-
-      <BaseInput
-        v-model="draft.title"
-        placeholder="Название заметки"
-        @focus="startTextEdit(draft.title)"
-        @blur="finishTitleEdit"
-      />
-
-      <ul class="page__todos">
-        <li v-for="(todo, index) in draft.todos" :key="todo.id">
-          <TodoRow
-            :todo
-            @toggle="toggleTodo(todo)"
-            @input="todo.text = $event"
-            @focus="startTextEdit(todo.text)"
-            @blur="finishTodoEdit(todo)"
-            @remove="removeTodo(index)"
-          />
-        </li>
-      </ul>
-
-      <BaseButton type="secondary" @click="addTodo">Добавить пункт</BaseButton>
-
-      <BaseModal
-        v-if="dialog === 'deleted'"
-        title="Заметка удалена"
-        @close="leaveDeleted"
-      >
-        Её удалили в другой вкладке, поэтому редактировать больше нечего.
-
-        <template #actions>
-          <BaseButton @click="leaveDeleted">К списку заметок</BaseButton>
-        </template>
-      </BaseModal>
-
-      <ConfirmDialog
-        v-if="dialog === 'restore'"
-        title="Восстановить черновик?"
-        confirm-label="Восстановить"
-        cancel-label="Начать заново"
-        @cancel="discardDraft"
-        @confirm="restoreDraft"
-      >
-        У заметки остались несохранённые изменения с прошлого раза.
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        v-if="dialog === 'cancel'"
-        title="Отменить редактирование?"
-        confirm-label="Отменить правки"
-        @cancel="dialog = null"
-        @confirm="cancel"
-      >
-        Внесённые изменения не сохранятся.
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        v-if="dialog === 'remove'"
-        title="Удалить заметку?"
-        confirm-label="Удалить"
-        danger
-        @cancel="dialog = null"
-        @confirm="remove"
-      >
-        «{{ draft.title }}» будет удалена без возможности восстановить.
-      </ConfirmDialog>
-    </template>
-
-    <div v-else class="page__missing">
-      <h1>Заметка не найдена</h1>
-      <p>Возможно, её удалили в другой вкладке.</p>
-      <BaseButton @click="router.push('/')">К списку заметок</BaseButton>
+    <div class="toolbar">
+      <BaseButton type="secondary" :disabled="!canUndo" @click="undoChange">
+        Отменить действие
+      </BaseButton>
+      <BaseButton type="secondary" :disabled="!canRedo" @click="redoChange">
+        Повторить действие
+      </BaseButton>
     </div>
-  </main>
+
+    <BaseInput
+      v-model="draft.title"
+      placeholder="Название заметки"
+      @focus="startTextEdit(draft.title)"
+      @blur="finishTitleEdit"
+    />
+
+    <ul class="todos">
+      <li v-for="(todo, index) in draft.todos" :key="todo.id">
+        <TodoRow
+          :todo
+          @toggle="toggleTodo(todo)"
+          @input="todo.text = $event"
+          @focus="startTextEdit(todo.text)"
+          @blur="finishTodoEdit(todo)"
+          @remove="removeTodo(index)"
+        />
+      </li>
+    </ul>
+
+    <BaseButton type="secondary" @click="addTodo">Добавить пункт</BaseButton>
+
+    <BaseModal
+      v-if="dialog === 'deleted'"
+      title="Заметка удалена"
+      @close="leave"
+    >
+      Её удалили в другой вкладке, поэтому редактировать больше нечего.
+
+      <template #actions>
+        <BaseButton @click="leave">К списку заметок</BaseButton>
+      </template>
+    </BaseModal>
+
+    <ConfirmDialog
+      v-if="dialog === 'restore'"
+      title="Восстановить черновик?"
+      confirm-label="Восстановить"
+      cancel-label="Начать заново"
+      @cancel="discardDraft"
+      @confirm="restoreDraft"
+    >
+      У заметки остались несохранённые изменения с прошлого раза.
+    </ConfirmDialog>
+
+    <ConfirmDialog
+      v-if="dialog === 'cancel'"
+      title="Отменить редактирование?"
+      confirm-label="Отменить правки"
+      @cancel="dialog = null"
+      @confirm="leave"
+    >
+      Внесённые изменения не сохранятся.
+    </ConfirmDialog>
+
+    <ConfirmDialog
+      v-if="dialog === 'remove'"
+      title="Удалить заметку?"
+      confirm-label="Удалить"
+      danger
+      @cancel="dialog = null"
+      @confirm="remove"
+    >
+      «{{ draft.title }}» будет удалена без возможности восстановить.
+    </ConfirmDialog>
+  </div>
+
+  <div v-else class="missing">
+    <h1>Заметка не найдена</h1>
+    <p>Возможно, её удалили в другой вкладке.</p>
+    <BaseButton @click="router.push('/')">К списку заметок</BaseButton>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.page {
-  max-width: var(--content-width);
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-md);
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
 
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-    margin-bottom: var(--space-lg);
+.todos {
+  display: grid;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
+}
 
-    @include mobile {
-      flex-direction: column;
-      align-items: stretch;
-    }
-  }
-
-  &__actions,
-  &__toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-  }
-
-  &__toolbar {
-    margin-bottom: var(--space-md);
-  }
-
-  &__todos {
-    display: grid;
-    gap: var(--space-sm);
-    margin: var(--space-lg) 0;
-  }
-
-  &__missing {
-    display: grid;
-    gap: var(--space-md);
-    justify-items: start;
-  }
+.missing {
+  display: grid;
+  gap: var(--space-md);
+  justify-items: start;
 }
 </style>

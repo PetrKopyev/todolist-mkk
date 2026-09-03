@@ -130,6 +130,13 @@ describe("стор заметок", () => {
 });
 
 describe("черновик", () => {
+  const draft = {
+    id: "note-1",
+    title: "Покупки",
+    todos: [{ id: "t1", text: "молоко", done: false }],
+    updatedAt: 0,
+  };
+
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers();
@@ -139,13 +146,6 @@ describe("черновик", () => {
     flushWrites();
     vi.useRealTimers();
   });
-
-  const draft = {
-    id: "note-1",
-    title: "Покупки",
-    todos: [{ id: "t1", text: "молоко", done: false }],
-    updatedAt: 0,
-  };
 
   test("отдаёт черновик только той заметке, которой он принадлежит", () => {
     scheduleDraftWrite(draft);

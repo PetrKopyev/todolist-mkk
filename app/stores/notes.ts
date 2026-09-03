@@ -16,10 +16,6 @@ export const useNotesStore = defineStore("notes", () => {
     [...notes.value].sort((first, second) => second.updatedAt - first.updatedAt),
   );
 
-  const persist = () => {
-    scheduleNotesWrite(notes.value);
-  };
-
   const init = () => {
     notes.value = readNotes();
 
@@ -55,14 +51,14 @@ export const useNotesStore = defineStore("notes", () => {
       notes.value[index] = stored;
     }
 
-    persist();
+    scheduleNotesWrite(notes.value);
 
     return stored;
   };
 
   const remove = (id: string) => {
     notes.value = notes.value.filter((note) => note.id !== id);
-    persist();
+    scheduleNotesWrite(notes.value);
   };
 
   return {

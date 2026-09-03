@@ -32,17 +32,14 @@ const remove = () => {
 </script>
 
 <template>
-  <main class="page">
-    <header class="page__header">
-      <h1>Заметки</h1>
+  <div>
+    <PageHeader title="Заметки">
       <BaseButton @click="openCreating">Новая заметка</BaseButton>
-    </header>
+    </PageHeader>
 
-    <p v-if="!store.orderedNotes.length" class="page__empty">
-      Заметок пока нет.
-    </p>
+    <p v-if="!store.orderedNotes.length" class="empty">Заметок пока нет.</p>
 
-    <ul v-else class="page__list">
+    <ul v-else class="list">
       <li v-for="note in store.orderedNotes" :key="note.id">
         <NoteCard
           :note
@@ -79,35 +76,16 @@ const remove = () => {
     >
       «{{ removingNote.title }}» будет удалена без возможности восстановить.
     </ConfirmDialog>
-  </main>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.page {
-  max-width: var(--content-width);
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-md);
+.empty {
+  color: var(--color-text-muted);
+}
 
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-    margin-bottom: var(--space-xl);
-
-    @include mobile {
-      flex-direction: column;
-      align-items: stretch;
-    }
-  }
-
-  &__empty {
-    color: var(--color-text-muted);
-  }
-
-  &__list {
-    display: grid;
-    gap: var(--space-md);
-  }
+.list {
+  display: grid;
+  gap: var(--space-md);
 }
 </style>

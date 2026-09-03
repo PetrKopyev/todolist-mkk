@@ -54,8 +54,12 @@ const model = defineModel<boolean>({ required: true });
     }
   }
 
-  &:hover .checkbox__box {
+  &:hover .checkbox__control:not(:disabled) + .checkbox__box {
     border-color: var(--color-brand);
+  }
+
+  &:has(.checkbox__control:disabled) {
+    cursor: default;
   }
 
   &__control:checked + .checkbox__box {
