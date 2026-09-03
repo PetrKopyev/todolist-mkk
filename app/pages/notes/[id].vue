@@ -108,6 +108,8 @@ const redoChange = () => {
   }
 };
 
+useUndoRedoShortcuts(undoChange, redoChange);
+
 const save = () => {
   if (!draft.value) {
     return;

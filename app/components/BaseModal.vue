@@ -43,7 +43,10 @@ const onKeydown = (event: KeyboardEvent) => {
 };
 
 onMounted(async () => {
-  restoreFocusTo = document.activeElement as HTMLElement | null;
+  restoreFocusTo =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
   document.body.classList.add("is-modal-open");
 
   await nextTick();
