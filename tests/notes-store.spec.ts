@@ -1,9 +1,16 @@
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { useNotesStore } from "~/stores/notes";
-import { flushWrite, readNotes } from "~/utils/storage";
+import {
+  clearDraft,
+  flushWrites,
+  readDraft,
+  readNotes,
+  scheduleDraftWrite,
+} from "~/utils/storage";
 
 const STORAGE_KEY = "todolist-mkk:notes";
+const DRAFT_KEY = "todolist-mkk:draft";
 
 describe("стор заметок", () => {
   let store: ReturnType<typeof useNotesStore>;
@@ -18,7 +25,7 @@ describe("стор заметок", () => {
   });
 
   afterEach(() => {
-    flushWrite();
+    flushWrites();
     vi.useRealTimers();
   });
 
@@ -28,7 +35,7 @@ describe("стор заметок", () => {
     note.todos = [{ id: "t1", text: "молоко", done: false }];
     store.save(note);
 
-    flushWrite();
+    flushWrites();
 
     const restored = readNotes();
     expect(restored).toHaveLength(1);
@@ -38,7 +45,7 @@ describe("стор заметок", () => {
 
   test("пишет в хранилище версию схемы", () => {
     store.save(store.createNote());
-    flushWrite();
+    flushWrites();
 
     const raw: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(raw).toMatchObject({ schemaVersion: 1 });
@@ -105,5 +112,51 @@ describe("стор заметок", () => {
 
     expect(store.getById(note.id)?.title).toBe("");
     expect(store.getById(note.id)?.todos[0]?.text).toBe("молоко");
+  });
+});
+
+describe("черновик", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    flushWrites();
+    vi.useRealTimers();
+  });
+
+  const draft = {
+    id: "note-1",
+    title: "Покупки",
+    todos: [{ id: "t1", text: "молоко", done: false }],
+    updatedAt: 0,
+  };
+
+  test("отдаёт черновик только той заметке, которой он принадлежит", () => {
+    scheduleDraftWrite(draft);
+    flushWrites();
+
+    expect(readDraft("note-1")?.title).toBe("Покупки");
+    expect(readDraft("note-2")).toBeNull();
+  });
+
+  test("пишется отложенно и не попадает в список заметок", () => {
+    scheduleDraftWrite(draft);
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+
+    vi.advanceTimersByTime(400);
+
+    expect(readDraft("note-1")).not.toBeNull();
+    expect(readNotes()).toEqual([]);
+  });
+
+  test("очистка отменяет и запланированную запись", () => {
+    scheduleDraftWrite(draft);
+    clearDraft();
+
+    vi.advanceTimersByTime(400);
+
+    expect(readDraft("note-1")).toBeNull();
   });
 });

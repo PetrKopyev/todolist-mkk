@@ -1,16 +1,10 @@
 import type { Note } from "~/types/note";
+import type { StoredDraft, StoredNotes } from "~/types/storage";
 
-const STORAGE_KEY = "todolist-mkk:notes";
+const NOTES_KEY = "todolist-mkk:notes";
+const DRAFT_KEY = "todolist-mkk:draft";
 const SCHEMA_VERSION = 1;
 const WRITE_DELAY = 400;
-
-interface StoredPayload {
-  schemaVersion: number;
-  notes: Note[];
-}
-
-let writeTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingNotes: Note[] | null = null;
 
 const isNote = (value: unknown): value is Note => {
   const note = value as Note;
@@ -23,8 +17,56 @@ const isNote = (value: unknown): value is Note => {
   );
 };
 
-const migrate = (payload: unknown) => {
-  const { schemaVersion, notes } = (payload ?? {}) as Partial<StoredPayload>;
+const readJson = (key: string): unknown => {
+  try {
+    const raw = localStorage.getItem(key);
+
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const createWriter = <T>(key: string) => {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let pending: T | null = null;
+
+  const cancel = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+
+    pending = null;
+  };
+
+  const flush = () => {
+    const value = pending;
+
+    cancel();
+
+    if (value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+  };
+
+  const schedule = (value: T) => {
+    pending = value;
+
+    if (!timer) {
+      timer = setTimeout(flush, WRITE_DELAY);
+    }
+  };
+
+  return { cancel, flush, schedule };
+};
+
+const notesWriter = createWriter<StoredNotes>(NOTES_KEY);
+const draftWriter = createWriter<StoredDraft>(DRAFT_KEY);
+
+const readNotes = () => {
+  const { schemaVersion, notes } = (readJson(NOTES_KEY) ??
+    {}) as Partial<StoredNotes>;
 
   if (!Array.isArray(notes) || Number(schemaVersion) > SCHEMA_VERSION) {
     return [];
@@ -33,49 +75,49 @@ const migrate = (payload: unknown) => {
   return notes.filter(isNote);
 };
 
-const readNotes = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+const readDraft = (noteId: string) => {
+  const { schemaVersion, note } = (readJson(DRAFT_KEY) ??
+    {}) as Partial<StoredDraft>;
 
-    return raw ? migrate(JSON.parse(raw)) : [];
-  } catch {
-    return [];
+  if (Number(schemaVersion) > SCHEMA_VERSION || !isNote(note)) {
+    return null;
   }
+
+  return note.id === noteId ? note : null;
 };
 
-const flushWrite = () => {
-  if (writeTimer) {
-    clearTimeout(writeTimer);
-    writeTimer = null;
-  }
-
-  if (!pendingNotes) {
-    return;
-  }
-
-  const payload: StoredPayload = {
-    schemaVersion: SCHEMA_VERSION,
-    notes: pendingNotes,
-  };
-
-  pendingNotes = null;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+const scheduleNotesWrite = (notes: Note[]) => {
+  notesWriter.schedule({ schemaVersion: SCHEMA_VERSION, notes });
 };
 
-const scheduleWrite = (notes: Note[]) => {
-  pendingNotes = notes;
+const scheduleDraftWrite = (note: Note) => {
+  draftWriter.schedule({ schemaVersion: SCHEMA_VERSION, note });
+};
 
-  if (!writeTimer) {
-    writeTimer = setTimeout(flushWrite, WRITE_DELAY);
-  }
+const clearDraft = () => {
+  draftWriter.cancel();
+  localStorage.removeItem(DRAFT_KEY);
+};
+
+const flushWrites = () => {
+  notesWriter.flush();
+  draftWriter.flush();
 };
 
 const subscribeToExternalChanges = (onChange: (notes: Note[]) => void) => {
   window.addEventListener("storage", (event) => {
-    if (!event.key || event.key === STORAGE_KEY) {
+    if (!event.key || event.key === NOTES_KEY) {
       onChange(readNotes());
     }
   });
 };
 
-export { flushWrite, readNotes, scheduleWrite, subscribeToExternalChanges };
+export {
+  clearDraft,
+  flushWrites,
+  readDraft,
+  readNotes,
+  scheduleDraftWrite,
+  scheduleNotesWrite,
+  subscribeToExternalChanges,
+};

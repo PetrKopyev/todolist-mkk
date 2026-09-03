@@ -1,18 +1,7 @@
-import type { Note, TodoItem } from "~/types/note";
+import type { History, Patch } from "~/types/history";
+import type { Note } from "~/types/note";
 
 const LIMIT = 50;
-
-type Patch =
-  | { type: "title"; before: string; after: string }
-  | { type: "todo-text"; id: string; before: string; after: string }
-  | { type: "todo-done"; id: string }
-  | { type: "todo-add"; index: number; item: TodoItem }
-  | { type: "todo-remove"; index: number; item: TodoItem };
-
-interface History {
-  undoStack: Patch[];
-  redoStack: Patch[];
-}
 
 const createHistory = (): History => ({ undoStack: [], redoStack: [] });
 
@@ -102,4 +91,3 @@ const reset = (history: History) => {
 };
 
 export { createHistory, record, redo, reset, undo };
-export type { History };

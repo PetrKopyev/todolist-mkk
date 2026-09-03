@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import type { TodoItem } from "~/types/note";
+import type { Note, TodoItem } from "~/types/note";
 import { createHistory, record, redo, reset, undo } from "~/utils/history";
+import { copyNote } from "~/utils/note";
+import { clearDraft, readDraft, scheduleDraftWrite } from "~/utils/storage";
 
 const store = useNotesStore();
 const route = useRoute();
@@ -9,10 +11,15 @@ const router = useRouter();
 const noteId = String(route.params.id);
 const original = store.getById(noteId);
 
-const draft = ref(
-  original
-    ? { ...original, todos: original.todos.map((todo) => ({ ...todo })) }
-    : null,
+const sameContent = (first: Note, second: Note) =>
+  first.title === second.title &&
+  JSON.stringify(first.todos) === JSON.stringify(second.todos);
+
+const draft = ref(original ? copyNote(original) : null);
+const savedDraft = original ? readDraft(noteId) : null;
+
+const isRestoring = ref(
+  Boolean(original && savedDraft && !sameContent(savedDraft, original)),
 );
 
 const history = reactive(createHistory());
@@ -76,6 +83,19 @@ const removeTodo = (index: number) => {
   record(history, { type: "todo-remove", index, item });
 };
 
+const restoreDraft = () => {
+  if (savedDraft) {
+    draft.value = copyNote(savedDraft);
+  }
+
+  isRestoring.value = false;
+};
+
+const discardDraft = () => {
+  clearDraft();
+  isRestoring.value = false;
+};
+
 const undoChange = () => {
   if (draft.value) {
     undo(history, draft.value);
@@ -102,18 +122,31 @@ const save = () => {
   });
 
   reset(history);
+  clearDraft();
   router.push("/");
 };
 
 const cancel = () => {
   reset(history);
+  clearDraft();
   router.push("/");
 };
 
 const remove = () => {
   store.remove(noteId);
+  clearDraft();
   router.push("/");
 };
+
+watch(
+  draft,
+  (value) => {
+    if (value) {
+      scheduleDraftWrite(value);
+    }
+  },
+  { deep: true },
+);
 </script>
 
 <template>
@@ -163,6 +196,17 @@ const remove = () => {
       </ul>
 
       <BaseButton type="secondary" @click="addTodo">Добавить пункт</BaseButton>
+
+      <ConfirmDialog
+        v-if="isRestoring"
+        title="Восстановить черновик?"
+        confirm-label="Восстановить"
+        cancel-label="Начать заново"
+        @cancel="discardDraft"
+        @confirm="restoreDraft"
+      >
+        У заметки остались несохранённые изменения с прошлого раза.
+      </ConfirmDialog>
 
       <ConfirmDialog
         v-if="isCancelling"

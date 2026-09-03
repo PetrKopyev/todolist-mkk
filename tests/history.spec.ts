@@ -1,13 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
+import type { History } from "~/types/history";
 import type { Note } from "~/types/note";
-import {
-  createHistory,
-  record,
-  redo,
-  reset,
-  undo,
-  type History,
-} from "~/utils/history";
+import { createHistory, record, redo, reset, undo } from "~/utils/history";
 
 const makeNote = (): Note => ({
   id: "note",

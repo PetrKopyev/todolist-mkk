@@ -1,10 +1,11 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import type { Note } from "~/types/note";
+import { copyNote } from "~/utils/note";
 import {
-  flushWrite,
+  flushWrites,
   readNotes,
-  scheduleWrite,
+  scheduleNotesWrite,
   subscribeToExternalChanges,
 } from "~/utils/storage";
 
@@ -16,7 +17,7 @@ export const useNotesStore = defineStore("notes", () => {
   );
 
   const persist = () => {
-    scheduleWrite(notes.value);
+    scheduleNotesWrite(notes.value);
   };
 
   const init = () => {
@@ -26,10 +27,10 @@ export const useNotesStore = defineStore("notes", () => {
       notes.value = external;
     });
 
-    window.addEventListener("pagehide", flushWrite);
+    window.addEventListener("pagehide", flushWrites);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") {
-        flushWrite();
+        flushWrites();
       }
     });
   };
@@ -44,11 +45,7 @@ export const useNotesStore = defineStore("notes", () => {
   });
 
   const save = (note: Note) => {
-    const stored: Note = {
-      ...note,
-      todos: note.todos.map((todo) => ({ ...todo })),
-      updatedAt: Date.now(),
-    };
+    const stored: Note = { ...copyNote(note), updatedAt: Date.now() };
 
     const index = notes.value.findIndex((item) => item.id === note.id);
 
