@@ -18,17 +18,18 @@ const sameContent = (first: Note, second: Note) =>
 const draft = ref(original ? copyNote(original) : null);
 const savedDraft = original ? readDraft(noteId) : null;
 
-const isRestoring = ref(
-  Boolean(original && savedDraft && !sameContent(savedDraft, original)),
+const hasDraft = !!original && !!savedDraft && !sameContent(savedDraft, original);
+
+const dialog = ref<"restore" | "cancel" | "remove" | "deleted" | null>(
+  hasDraft ? "restore" : null,
 );
 
 const history = reactive(createHistory());
-const isCancelling = ref(false);
-const isRemoving = ref(false);
 
 let textBeforeEdit = "";
+let isLeaving = false;
 
-const canSave = computed(() => Boolean(draft.value?.title.trim()));
+const canSave = computed(() => !!draft.value?.title.trim());
 const canUndo = computed(() => history.undoStack.length > 0);
 const canRedo = computed(() => history.redoStack.length > 0);
 
@@ -88,12 +89,12 @@ const restoreDraft = () => {
     draft.value = copyNote(savedDraft);
   }
 
-  isRestoring.value = false;
+  dialog.value = null;
 };
 
 const discardDraft = () => {
   clearDraft();
-  isRestoring.value = false;
+  dialog.value = null;
 };
 
 const undoChange = () => {
@@ -110,6 +111,11 @@ const redoChange = () => {
 
 useUndoRedoShortcuts(undoChange, redoChange);
 
+const leave = () => {
+  isLeaving = true;
+  router.push("/");
+};
+
 const save = () => {
   if (!draft.value) {
     return;
@@ -125,20 +131,34 @@ const save = () => {
 
   reset(history);
   clearDraft();
-  router.push("/");
+  leave();
 };
 
 const cancel = () => {
   reset(history);
   clearDraft();
-  router.push("/");
+  leave();
 };
 
 const remove = () => {
   store.remove(noteId);
   clearDraft();
-  router.push("/");
+  leave();
 };
+
+const leaveDeleted = () => {
+  clearDraft();
+  leave();
+};
+
+watch(
+  () => !!store.getById(noteId),
+  (exists) => {
+    if (!exists && !isLeaving) {
+      dialog.value = "deleted";
+    }
+  },
+);
 
 watch(
   draft,
@@ -158,10 +178,10 @@ watch(
         <h1>Заметка</h1>
 
         <div class="page__actions">
-          <BaseButton type="secondary" @click="isCancelling = true">
+          <BaseButton type="secondary" @click="dialog = 'cancel'">
             Отменить редактирование
           </BaseButton>
-          <BaseButton type="danger" @click="isRemoving = true">
+          <BaseButton type="danger" @click="dialog = 'remove'">
             Удалить
           </BaseButton>
           <BaseButton :disabled="!canSave" @click="save">Сохранить</BaseButton>
@@ -199,8 +219,20 @@ watch(
 
       <BaseButton type="secondary" @click="addTodo">Добавить пункт</BaseButton>
 
+      <BaseModal
+        v-if="dialog === 'deleted'"
+        title="Заметка удалена"
+        @close="leaveDeleted"
+      >
+        Её удалили в другой вкладке, поэтому редактировать больше нечего.
+
+        <template #actions>
+          <BaseButton @click="leaveDeleted">К списку заметок</BaseButton>
+        </template>
+      </BaseModal>
+
       <ConfirmDialog
-        v-if="isRestoring"
+        v-if="dialog === 'restore'"
         title="Восстановить черновик?"
         confirm-label="Восстановить"
         cancel-label="Начать заново"
@@ -211,21 +243,21 @@ watch(
       </ConfirmDialog>
 
       <ConfirmDialog
-        v-if="isCancelling"
+        v-if="dialog === 'cancel'"
         title="Отменить редактирование?"
         confirm-label="Отменить правки"
-        @cancel="isCancelling = false"
+        @cancel="dialog = null"
         @confirm="cancel"
       >
         Внесённые изменения не сохранятся.
       </ConfirmDialog>
 
       <ConfirmDialog
-        v-if="isRemoving"
+        v-if="dialog === 'remove'"
         title="Удалить заметку?"
         confirm-label="Удалить"
         danger
-        @cancel="isRemoving = false"
+        @cancel="dialog = null"
         @confirm="remove"
       >
         «{{ draft.title }}» будет удалена без возможности восстановить.

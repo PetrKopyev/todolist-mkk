@@ -101,6 +101,20 @@ describe("стор заметок", () => {
     expect(store.getById(note.id)).toBeUndefined();
   });
 
+  test("подхватывает изменения из другой вкладки", () => {
+    const note = store.save(store.createNote());
+    flushWrites();
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ schemaVersion: 1, notes: [] }),
+    );
+    window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+
+    expect(store.getById(note.id)).toBeUndefined();
+    expect(store.notes).toHaveLength(0);
+  });
+
   test("не связывает сохранённую заметку с переданным объектом", () => {
     const todo = { id: "t1", text: "молоко", done: false };
     const note = store.createNote();
