@@ -104,6 +104,32 @@ describe("стор заметок", () => {
     expect(restored[0]?.id).toBe("a");
   });
 
+  test("принимает данные без версии как v0 и прогоняет через миграции", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        notes: [{ id: "a", title: "запись из прошлой жизни", updatedAt: 1, todos: [] }],
+      }),
+    );
+
+    const restored = readNotes();
+
+    expect(restored).toHaveLength(1);
+    expect(restored[0]?.title).toBe("запись из прошлой жизни");
+  });
+
+  test("отбрасывает данные будущей версии, записанной строкой", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: "99",
+        notes: [{ id: "a", title: "странная", updatedAt: 1, todos: [] }],
+      }),
+    );
+
+    expect(readNotes()).toEqual([]);
+  });
+
   test("показывает недавно изменённые заметки первыми", () => {
     const first = store.save(store.createNote());
     vi.advanceTimersByTime(1000);
@@ -196,5 +222,11 @@ describe("черновик", () => {
     vi.advanceTimersByTime(400);
 
     expect(readDraft("note-1")).toBeNull();
+  });
+
+  test("читает черновик без версии схемы", () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ note: draft }));
+
+    expect(readDraft("note-1")?.title).toBe("Покупки");
   });
 });

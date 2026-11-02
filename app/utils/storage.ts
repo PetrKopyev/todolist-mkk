@@ -75,26 +75,62 @@ const createWriter = <T>(key: string) => {
 const notesWriter = createWriter<StoredNotes>(NOTES_KEY);
 const draftWriter = createWriter<StoredDraft>(DRAFT_KEY);
 
+type Migration = (payload: unknown) => unknown;
+
+// Миграции из версии N в N + 1. Записи без поля schemaVersion
+// считаются версией 0 и прогоняются через всю цепочку.
+const migrations: Record<number, Migration> = {
+  0: (payload) => payload,
+};
+
+const parseVersion = (value: unknown) => {
+  const version = Number(value);
+
+  return Number.isFinite(version) ? version : 0;
+};
+
+const migrateToCurrent = (version: number, payload: unknown): unknown => {
+  let result = payload;
+  let current = version;
+
+  while (current < SCHEMA_VERSION) {
+    result = migrations[current]?.(result) ?? result;
+    current += 1;
+  }
+
+  return result;
+};
+
 const readNotes = () => {
   const { schemaVersion, notes } = (readJson(NOTES_KEY) ??
     {}) as Partial<StoredNotes>;
 
-  if (!Array.isArray(notes) || Number(schemaVersion) > SCHEMA_VERSION) {
+  if (!Array.isArray(notes)) {
     return [];
   }
 
-  return notes.filter(isNote);
+  const version = parseVersion(schemaVersion);
+
+  if (version > SCHEMA_VERSION) {
+    return [];
+  }
+
+  return (migrateToCurrent(version, notes) as unknown[]).filter(isNote);
 };
 
 const readDraft = (noteId: string) => {
   const { schemaVersion, note } = (readJson(DRAFT_KEY) ??
     {}) as Partial<StoredDraft>;
 
-  if (Number(schemaVersion) > SCHEMA_VERSION || !isNote(note)) {
+  const version = parseVersion(schemaVersion);
+
+  if (version > SCHEMA_VERSION) {
     return null;
   }
 
-  return note.id === noteId ? note : null;
+  const migrated = migrateToCurrent(version, note);
+
+  return isNote(migrated) && migrated.id === noteId ? migrated : null;
 };
 
 const scheduleNotesWrite = (notes: Note[]) => {
