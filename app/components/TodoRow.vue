@@ -6,6 +6,7 @@ defineProps<{ todo: TodoItem }>();
 const emit = defineEmits<{
   toggle: [];
   input: [value: string];
+  enter: [];
   focus: [];
   blur: [];
   remove: [];
@@ -23,6 +24,7 @@ const emit = defineEmits<{
       :model-value="todo.text"
       placeholder="Что нужно сделать"
       @update:model-value="emit('input', $event)"
+      @keydown.enter="emit('enter')"
       @focus="emit('focus')"
       @blur="emit('blur')"
     />

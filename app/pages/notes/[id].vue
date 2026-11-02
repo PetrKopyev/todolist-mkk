@@ -67,16 +67,25 @@ const toggleTodo = (todo: TodoItem) => {
   todo.done = !todo.done;
 };
 
-const addTodo = () => {
+const addTodo = (afterIndex?: number) => {
   if (!draft.value) {
     return;
   }
 
   const item: TodoItem = { id: crypto.randomUUID(), text: "", done: false };
-  const index = draft.value.todos.length;
+  const index =
+    afterIndex === undefined
+      ? draft.value.todos.length
+      : Math.min(afterIndex + 1, draft.value.todos.length);
 
-  draft.value.todos.push(item);
+  draft.value.todos.splice(index, 0, item);
   record(history, { type: "todo-add", index, item: { ...item } });
+
+  nextTick(() => {
+    document
+      .querySelector<HTMLElement>(`[data-todo-id="${item.id}"] input`)
+      ?.focus();
+  });
 };
 
 const removeTodo = (index: number) => {
@@ -192,11 +201,16 @@ watch(
     />
 
     <ul class="todos">
-      <li v-for="(todo, index) in draft.todos" :key="todo.id">
+      <li
+        v-for="(todo, index) in draft.todos"
+        :key="todo.id"
+        :data-todo-id="todo.id"
+      >
         <TodoRow
           :todo
           @toggle="toggleTodo(todo)"
           @input="todo.text = $event"
+          @enter="addTodo(index)"
           @focus="startTextEdit(todo.text)"
           @blur="finishTodoEdit(todo)"
           @remove="removeTodo(index)"
@@ -204,7 +218,7 @@ watch(
       </li>
     </ul>
 
-    <BaseButton type="secondary" @click="addTodo">Добавить пункт</BaseButton>
+    <BaseButton type="secondary" @click="addTodo()">Добавить пункт</BaseButton>
 
     <BaseModal
       v-if="dialog === 'deleted'"

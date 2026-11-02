@@ -23,6 +23,12 @@ const create = () => {
   router.push(`/notes/${note.id}`);
 };
 
+const submitCreate = () => {
+  if (newTitle.value.trim()) {
+    create();
+  }
+};
+
 const remove = () => {
   if (removingNote.value) {
     store.remove(removingNote.value.id);
@@ -54,7 +60,11 @@ const remove = () => {
       title="Новая заметка"
       @close="isCreating = false"
     >
-      <BaseInput v-model="newTitle" placeholder="Название заметки" />
+      <BaseInput
+        v-model="newTitle"
+        placeholder="Название заметки"
+        @keydown.enter="submitCreate"
+      />
 
       <template #actions>
         <BaseButton type="secondary" @click="isCreating = false">
