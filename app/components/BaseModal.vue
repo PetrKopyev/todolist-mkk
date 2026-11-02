@@ -7,6 +7,7 @@ defineProps<{ title: string }>();
 const emit = defineEmits<{ close: [] }>();
 
 const titleId = useId();
+const bodyId = useId();
 const dialog = useTemplateRef<HTMLElement>("dialog");
 let restoreFocusTo: HTMLElement | null = null;
 
@@ -53,7 +54,7 @@ onBeforeUnmount(() => {
   <Teleport to="body">
     <div
       class="modal"
-      @keydown.escape="emit('close')"
+      @keydown.esc.prevent="emit('close')"
       @keydown.tab="trapTab"
       @mousedown.self="emit('close')"
     >
@@ -63,11 +64,12 @@ onBeforeUnmount(() => {
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
+        :aria-describedby="bodyId"
         tabindex="-1"
       >
         <h2 :id="titleId" class="modal__title">{{ title }}</h2>
 
-        <div class="modal__body">
+        <div :id="bodyId" class="modal__body">
           <slot />
         </div>
 

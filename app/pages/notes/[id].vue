@@ -18,6 +18,12 @@ const sameContent = (first: Note, second: Note) =>
 const draft = ref(original ? copyNote(original) : null);
 const savedDraft = original ? readDraft(noteId) : null;
 
+useHead(() => ({
+  title: draft.value
+    ? `${draft.value.title.trim() || "Без названия"} — заметка`
+    : "Заметка не найдена",
+}));
+
 const hasDraft = !!original && !!savedDraft && !sameContent(savedDraft, original);
 
 const dialog = ref<"restore" | "cancel" | "remove" | "deleted" | null>(

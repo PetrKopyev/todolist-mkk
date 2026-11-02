@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Note } from "~/types/note";
 
+useHead({ title: "Заметки" });
+
 const store = useNotesStore();
 const router = useRouter();
 
