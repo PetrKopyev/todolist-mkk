@@ -27,7 +27,7 @@ const apply = (note: Note, patch: Patch, forward: boolean) => {
       const todo = findTodo(note, patch.id);
 
       if (todo) {
-        todo.done = !todo.done;
+        todo.done = forward ? patch.after : patch.before;
       }
 
       break;

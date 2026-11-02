@@ -57,8 +57,14 @@ const finishTodoEdit = (todo: TodoItem) => {
 };
 
 const toggleTodo = (todo: TodoItem) => {
+  record(history, {
+    type: "todo-done",
+    id: todo.id,
+    before: todo.done,
+    after: !todo.done,
+  });
+
   todo.done = !todo.done;
-  record(history, { type: "todo-done", id: todo.id });
 };
 
 const addTodo = () => {

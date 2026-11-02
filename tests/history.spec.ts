@@ -35,13 +35,22 @@ describe("история изменений", () => {
 
   test("отменяет и повторяет отметку выполнения", () => {
     note.todos[0]!.done = true;
-    record(history, { type: "todo-done", id: "a" });
+    record(history, { type: "todo-done", id: "a", before: false, after: true });
 
     undo(history, note);
     expect(note.todos[0]!.done).toBe(false);
 
     redo(history, note);
     expect(note.todos[0]!.done).toBe(true);
+  });
+
+  test("восстанавливает записанное значение, а не инвертирует текущее", () => {
+    record(history, { type: "todo-done", id: "a", before: false, after: true });
+
+    note.todos[0]!.done = false; // внешняя правка вопреки истории
+    undo(history, note);
+
+    expect(note.todos[0]!.done).toBe(false);
   });
 
   test("возвращает удалённый пункт на прежнее место", () => {
