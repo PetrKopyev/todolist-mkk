@@ -1,10 +1,20 @@
-import type { Note } from "~/types/note";
+import type { Note, TodoItem } from "~/types/note";
 import type { StoredDraft, StoredNotes } from "~/types/storage";
 
 const NOTES_KEY = "todolist-mkk:notes";
 const DRAFT_KEY = "todolist-mkk:draft";
 const SCHEMA_VERSION = 1;
 const WRITE_DELAY = 400;
+
+const isTodoItem = (value: unknown): value is TodoItem => {
+  const item = value as TodoItem;
+
+  return (
+    typeof item?.id === "string" &&
+    typeof item.text === "string" &&
+    typeof item.done === "boolean"
+  );
+};
 
 const isNote = (value: unknown): value is Note => {
   const note = value as Note;
@@ -13,7 +23,8 @@ const isNote = (value: unknown): value is Note => {
     typeof note?.id === "string" &&
     typeof note.title === "string" &&
     typeof note.updatedAt === "number" &&
-    Array.isArray(note.todos)
+    Array.isArray(note.todos) &&
+    note.todos.every(isTodoItem)
   );
 };
 

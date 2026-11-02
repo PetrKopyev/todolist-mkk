@@ -80,6 +80,30 @@ describe("стор заметок", () => {
     expect(readNotes()).toEqual([]);
   });
 
+  test("отбрасывает заметки с битыми пунктами списка", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        notes: [
+          { id: "a", title: "целая", updatedAt: 1, todos: [] },
+          { id: "b", title: "сломанная", updatedAt: 1, todos: [42] },
+          {
+            id: "c",
+            title: "без флага выполнения",
+            updatedAt: 1,
+            todos: [{ id: "t", text: "молоко" }],
+          },
+        ],
+      }),
+    );
+
+    const restored = readNotes();
+
+    expect(restored).toHaveLength(1);
+    expect(restored[0]?.id).toBe("a");
+  });
+
   test("показывает недавно изменённые заметки первыми", () => {
     const first = store.save(store.createNote());
     vi.advanceTimersByTime(1000);
