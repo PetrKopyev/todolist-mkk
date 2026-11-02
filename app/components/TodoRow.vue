@@ -11,6 +11,12 @@ const emit = defineEmits<{
   blur: [];
   remove: [];
 }>();
+
+const onEnter = (event: KeyboardEvent) => {
+  if (!event.isComposing) {
+    emit("enter");
+  }
+};
 </script>
 
 <template>
@@ -24,7 +30,7 @@ const emit = defineEmits<{
       :model-value="todo.text"
       placeholder="Что нужно сделать"
       @update:model-value="emit('input', $event)"
-      @keydown.enter="emit('enter')"
+      @keydown.enter="onEnter"
       @focus="emit('focus')"
       @blur="emit('blur')"
     />

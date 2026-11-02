@@ -25,10 +25,12 @@ const create = () => {
   router.push(`/notes/${note.id}`);
 };
 
-const submitCreate = () => {
-  if (newTitle.value.trim()) {
-    create();
+const submitCreate = (event: KeyboardEvent) => {
+  if (event.isComposing || !newTitle.value.trim()) {
+    return;
   }
+
+  create();
 };
 
 const remove = () => {
