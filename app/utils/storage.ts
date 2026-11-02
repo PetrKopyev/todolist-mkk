@@ -28,11 +28,11 @@ const isNote = (value: unknown): value is Note => {
   );
 };
 
-const readJson = (key: string): unknown => {
+const readJson = <T>(key: string): T | null => {
   try {
     const raw = localStorage.getItem(key);
 
-    return raw ? JSON.parse(raw) : null;
+    return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
@@ -56,7 +56,7 @@ const createWriter = <T>(key: string) => {
 
     cancel();
 
-    if (value) {
+    if (value !== null) {
       localStorage.setItem(key, JSON.stringify(value));
     }
   };
@@ -102,8 +102,8 @@ const migrateToCurrent = (version: number, payload: unknown): unknown => {
 };
 
 const readNotes = () => {
-  const { schemaVersion, notes } = (readJson(NOTES_KEY) ??
-    {}) as Partial<StoredNotes>;
+  const { schemaVersion, notes } =
+    readJson<Partial<StoredNotes>>(NOTES_KEY) ?? {};
 
   if (!Array.isArray(notes)) {
     return [];
@@ -119,8 +119,7 @@ const readNotes = () => {
 };
 
 const readDraft = (noteId: string) => {
-  const { schemaVersion, note } = (readJson(DRAFT_KEY) ??
-    {}) as Partial<StoredDraft>;
+  const { schemaVersion, note } = readJson<Partial<StoredDraft>>(DRAFT_KEY) ?? {};
 
   const version = parseVersion(schemaVersion);
 
